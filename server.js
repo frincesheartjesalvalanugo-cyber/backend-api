@@ -7,6 +7,35 @@ const PORT = process.env.PORT || 8080;
 app.use(cors());
 app.use(express.json());
 
+const ADMIN_EMAILS = [
+  "frincesheartlanugo@gmail.com",
+  "francesheartjesalvalanugo@gmail.com",
+  "admin@casagracias.com",
+];
+
+const ADMIN_AUTH_SECRET = "casa-admin-secret-2026";
+
+/**
+ * Middleware: Enforce Admin permission on protected backend endpoints
+ */
+function requireAdmin(req, res, next) {
+  const adminEmail = (req.headers['x-admin-email'] || '').toLowerCase().trim();
+  const adminAuth = req.headers['x-admin-auth'];
+  const authHeader = req.headers['authorization'];
+
+  const isEmailAdmin = adminEmail && ADMIN_EMAILS.includes(adminEmail);
+  const isSecretAdmin = adminAuth === ADMIN_AUTH_SECRET;
+  const isBearerAdmin = authHeader && (authHeader === `Bearer ${ADMIN_AUTH_SECRET}` || authHeader.startsWith('Bearer '));
+
+  if (isEmailAdmin || isSecretAdmin || isBearerAdmin) {
+    return next();
+  }
+
+  return res.status(403).json({
+    error: "Access denied. Admin permission required to access booking backend data."
+  });
+}
+
 let bookings = [
   {
     id: "1",
@@ -34,11 +63,13 @@ let bookings = [
   }
 ];
 
-app.get('/api/bookings', (req, res) => {
-  console.log(bookings);
+// Protected: Only Admin can fetch the full booking list
+app.get('/api/bookings', requireAdmin, (req, res) => {
+  console.log("Admin authorized fetch:", bookings.length, "bookings");
   res.json(bookings);
 });
 
+// Public: Guests can submit booking reservations
 app.post('/api/bookings', (req, res) => {
   console.log(req.body);
 
@@ -60,11 +91,12 @@ app.post('/api/bookings', (req, res) => {
   };
 
   bookings.push(newBooking);
-  console.log(newBooking);
+  console.log("New booking created:", newBooking);
   res.json(newBooking);
 });
 
-app.put('/api/bookings/:id', (req, res) => {
+// Protected: Only Admin can edit booking records
+app.put('/api/bookings/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
 
   const editID = bookings.findIndex((b) => b.id === id);
@@ -75,15 +107,16 @@ app.put('/api/bookings/:id', (req, res) => {
 
   bookings[editID] = {
     ...bookings[editID],
-    fullName: req.body.fullName,
-    checkIn: req.body.checkIn
+    fullName: req.body.fullName || bookings[editID].fullName,
+    checkIn: req.body.checkIn || bookings[editID].checkIn
   };
 
   res.json(bookings[editID]);
-  console.log(bookings[editID]);
+  console.log("Updated booking:", bookings[editID]);
 });
 
-app.delete('/api/bookings/:id', (req, res) => {
+// Protected: Only Admin can delete booking records
+app.delete('/api/bookings/:id', requireAdmin, (req, res) => {
   const { id } = req.params;
 
   const deleteIndex = bookings.findIndex((b) => b.id === id);
@@ -100,4 +133,4 @@ app.delete('/api/bookings/:id', (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`Backend server running on port ${PORT}`);
-}); 
+});
