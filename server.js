@@ -52,6 +52,7 @@ app.post('/api/bookings', (req, res) => {
     email: req.body.email,
     roomName: req.body.roomName,
     roomId: req.body.roomId,
+    unitNumber: req.body.unitNumber,
     checkIn: req.body.checkIn,
     checkOut: req.body.checkOut,
     guests: req.body.guests,
