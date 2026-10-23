@@ -42,6 +42,42 @@ app.get('/api/bookings', (req, res) => {
 app.post('/api/bookings', (req, res) => {
   console.log(req.body);
 
+  const { roomId, unitNumber, roomName, checkIn, checkOut } = req.body;
+
+  if (checkIn && checkOut && (unitNumber !== undefined || roomName)) {
+    const newStart = new Date(checkIn);
+    const newEnd = new Date(checkOut);
+
+    if (!isNaN(newStart.getTime()) && !isNaN(newEnd.getTime()) && newEnd > newStart) {
+      const conflict = bookings.find((b) => {
+        if (b.status === "Cancelled") return false;
+
+        const isSameType =
+          !roomId ||
+          b.roomId === roomId ||
+          (b.roomName && roomId && b.roomName.toLowerCase().includes(roomId.toLowerCase()));
+        if (!isSameType) return false;
+
+        const isSameUnit =
+          (unitNumber !== undefined && b.unitNumber !== undefined && Number(b.unitNumber) === Number(unitNumber)) ||
+          (roomName && b.roomName && (b.roomName === roomName || b.roomName.includes(`Room ${unitNumber}`)));
+        if (!isSameUnit) return false;
+
+        const existStart = new Date(b.checkIn);
+        const existEnd = new Date(b.checkOut);
+        if (isNaN(existStart.getTime()) || isNaN(existEnd.getTime())) return false;
+
+        return newStart < existEnd && newEnd > existStart;
+      });
+
+      if (conflict) {
+        return res.status(409).json({
+          message: `Room ${unitNumber || ""} is already reserved for the selected dates. Please choose different dates or another room.`
+        });
+      }
+    }
+  }
+
   const nextId = String(
     bookings.reduce((max, b) => Math.max(max, Number(b.id) || 0), 0) + 1
   );
