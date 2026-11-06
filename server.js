@@ -9,7 +9,8 @@ const db = mysql.createPool({
     host: 'localhost',
     user: 'root',
     password: '',
-    database: 'casa_gracias'
+    database: 'casa_gracias',
+    dateStrings: true
 })
 
 if (db.getConnection()) {
