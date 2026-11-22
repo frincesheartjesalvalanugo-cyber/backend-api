@@ -19,7 +19,7 @@ const db = mysql.createPool({
   dateStrings: true,
   waitForConnections: true,
   connectionLimit: 5,
- 
+
   ssl: process.env.DB_SSL === 'false' ? undefined : { minVersion: 'TLSv1.2', rejectUnauthorized: true },
 });
 
@@ -48,6 +48,20 @@ async function initDb() {
 }
 
 
+const u = process.env.DB_USER || '';
+const pw = process.env.DB_PASSWORD || '';
+console.log('DB config check:', {
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT,
+  database: process.env.DB_NAME,
+  userLength: u.length,
+  userEndsWithDotRoot: /\.root$/.test(u),
+  userHasSpaceOrQuote: /[\s'"]/.test(u),
+  passwordLength: pw.length,
+  passwordStartsOrEndsWithSpaceOrQuote: /^[\s'"]|[\s'"]$/.test(pw),
+});
+
+
 (async function connectWithRetry() {
   try {
     await initDb();
@@ -57,7 +71,7 @@ async function initDb() {
   }
 })();
 
-// ---------- Helpers ----------
+
 function requireAdmin(req, res, next) {
   const bearer = (req.headers.authorization || '').replace('Bearer ', '');
   const key = req.headers['x-admin-auth'] || bearer;
@@ -65,7 +79,7 @@ function requireAdmin(req, res, next) {
   next();
 }
 
-// ---------- Routes ----------
+
 app.get('/', (req, res) => res.json({ status: 'ok', service: 'casa-gracia-backend' }));
 
 app.get('/api/bookings', async (req, res) => {
