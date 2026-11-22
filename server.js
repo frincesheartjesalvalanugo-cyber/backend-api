@@ -20,7 +20,9 @@ const db = mysql.createPool({
   waitForConnections: true,
   connectionLimit: 5,
 
-  ssl: process.env.DB_SSL === 'false' ? undefined : { minVersion: 'TLSv1.2', rejectUnauthorized: true },
+  ssl: (process.env.DB_SSL === 'false' || ['localhost', '127.0.0.1', undefined].includes(process.env.DB_HOST))
+    ? undefined
+    : { minVersion: 'TLSv1.2', rejectUnauthorized: true },
 });
 
 
@@ -42,7 +44,7 @@ async function initDb() {
       totalPrice VARCHAR(40),
       status VARCHAR(20) DEFAULT 'Pending',
       dateCreated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
+    ) DEFAULT CHARSET=utf8mb4
   `);
   console.log('Database ready (bookings table OK)');
 }
@@ -93,7 +95,6 @@ app.post('/api/bookings', async (req, res) => {
     return res.status(400).json({ message: 'fullName and checkIn are required.' });
   }
   const checkOut = b.checkOut || b.checkIn;
-
 
   if (b.roomUnitId) {
     const [clash] = await db.query(
